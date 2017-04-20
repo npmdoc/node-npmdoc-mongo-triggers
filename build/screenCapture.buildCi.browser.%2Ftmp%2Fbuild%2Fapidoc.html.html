@@ -1,0 +1,180 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a>mongo-triggers (v0.0.5)</a>
+</h1>
+<h4>Adds the ability to add triggers and listeners to mongoDB operations, when using the mongoJS driver </h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.mongo-triggers">module mongo-triggers</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.mongo-triggers.mongo-triggers">
+            function <span class="apidocSignatureSpan"></span>mongo-triggers
+            <span class="apidocSignatureSpan">(collection)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.mongo-triggers" id="apidoc.module.mongo-triggers">module mongo-triggers</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.mongo-triggers.mongo-triggers" id="apidoc.element.mongo-triggers.mongo-triggers">
+        function <span class="apidocSignatureSpan"></span>mongo-triggers
+        <span class="apidocSignatureSpan">(collection)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">mongo-triggers = function (collection) {
+    //Will holds all functions that will be called before each action
+    var triggers = {
+        save:[],
+        insert:[],
+        update:[],
+        remove:[]
+    };
+
+    //Will hold all functions that will be called after each action
+    var listeners = {
+        save:[],
+        insert:[],
+        update:[],
+        remove:[],
+    	find:[],
+    	findOne:[]
+    };
+
+    //This will be returned. Each action that will be chosen will lead to the addition of a trigger to it. Each one returns a chainer
+ object for chaining.
+    var chainer = {
+        save: function (trigger) {
+            triggers.save.push(trigger);
+            return chainer;
+        },
+        insert: function (trigger) {
+            triggers.insert.push(trigger);
+            return chainer;
+        },
+        update: function (trigger) {
+            triggers.update.push(trigger);
+            return chainer;
+        },
+        remove: function (trigger) {
+            triggers.remove.push(trigger);
+            return chainer;
+        },
+        on: function(event, trigger) { //This will add after-triggers
+            listeners[event].push(trigger);
+            return chainer;
+        }
+    };
+
+
+    //This will create a function that performs all the triggers for fn, then fn, that all it's after-triggers
+    var injectTriggers = function(fn,triggers,listeners) {
+        return function() {
+            var index = 0;
+            var args = Array.prototype.slice.call(arguments);
+            var callback = nop;
+
+            if(typeof args[args.length -1] === 'function') {
+
+                callback = args.pop();
+
+                if(listeners.length &gt; 0) {
+                    var originArgs = clone(args);
+                    callback = injectAfter(callback, function() {
+
+                        var listenerArgs = Array.prototype.slice.call(arguments).concat(originArgs);
+                        listeners.forEach(function (listener) {
+                            listener.apply(collection, listenerArgs);
+                        });
+                    });
+                }
+            }
+
+            var next = function(err) {
+                if(err) return callback(err);
+                var trigger = triggers[index++];
+                if(!trigger) return fn.apply(collection, args.concat(callback));
+                trigger.apply(collection, args.concat(next));
+            };
+
+            next();
+        };
+    };
+
+    collection.save = injectTriggers(collection.save, triggers.save, listeners.save);
+    collection.insert = injectTriggers(collection.insert, triggers.insert, listeners.insert);
+    collection.update = injectTriggers(collection.update, triggers.update, listeners.update);
+    collection.remove = injectTriggers(collection.remove, triggers.remove, listeners.remove);
+    collection.findAndModify = injectTriggers(collection.findAndModify, triggers.findAndModify, listeners.findAndModify);
+
+    return chainer;
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
